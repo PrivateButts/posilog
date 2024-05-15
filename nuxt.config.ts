@@ -14,5 +14,12 @@ export default defineNuxtConfig({
     public: {
       mapboxToken: process.env.MAPBOX_ACCESS_TOKEN
     }
+  },
+  nitro: {
+    storage: {
+      data: {
+        driver: 'vercelKV'
+      }
+    }
   }
 })
