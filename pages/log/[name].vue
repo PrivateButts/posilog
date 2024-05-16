@@ -1,6 +1,6 @@
 <template>
     <UContainer class="mt-4">
-      <UForm :schema="schema" :state="state" class="space-y-4" @submit="onSubmit">
+      <UForm :schema="ListItemSchema" :state="state" class="space-y-4" @submit="onSubmit">
         <legend>Log Data Point</legend>
         <UFormGroup label="ID">
           <UInput v-model="state.id" disabled />
@@ -33,24 +33,21 @@
   
   <script setup lang="ts">
   import { useGeolocation } from '@vueuse/core'
-  import { z } from 'zod'
   import type { FormSubmitEvent } from '#ui/types'
+  import { ListItemSchema, type ListItemSchemaType } from '~/types/list';
   
   const { coords, locatedAt, resume, pause } = useGeolocation()
   const route = useRoute()
-  const { value: loadedItems } = await useFetch(`/api/list/${route.params.name}`)
-  console.log(loadedItems)
+  const { data: results } = await useAsyncData(
+    'list',  
+    () => $fetch(`/api/list/${route.params.name}`)
+  )
+  console.log(results)
   
-  const items = ref<Schema[]>(loadedItems ?? [])
-  
-  const schema = z.object({
-    id: z.number(),
-    lat: z.number(),
-    lon: z.number(),
-    data: z.string(),
-  })
-  
-  type Schema = z.output<typeof schema>
+  const items = ref<ListItemSchemaType[]>([])
+  if(results && results.value && results.value.items) {
+    items.value = results.value.items
+  }
   
   const state = reactive({
     id: items.value.length,
@@ -59,7 +56,7 @@
     data: '',
   })
   
-  async function onSubmit (event: FormSubmitEvent<Schema>) {
+  async function onSubmit (event: FormSubmitEvent<ListItemSchemaType>) {
     items.value.push({...event.data, lat: coords.value.latitude, lon: coords.value.longitude})
     state.id = items.value.length
     state.lat = coords.value.latitude
@@ -106,6 +103,6 @@
   }
 
   async function save () {
-    await useFetch(`/api/list/${route.params.name}`, { method: 'POST', body: JSON.stringify(items.value) })
+    await $fetch(`/api/list/${route.params.name}`, { method: 'POST', body: JSON.stringify(items.value) })
   }
   </script>
